@@ -1,0 +1,13 @@
+**/data/
+**/demo-data/
+**/learning.json*
+**/*.damaged-*
+**/*.tmp
+Fonts/*.ttf
+Fonts/*.otf
+app/Fonts/
+dist/
+qa/
+.vs/
+*.user
+
