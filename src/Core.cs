@@ -16,9 +16,9 @@ namespace ReadAlong
     }
     public class Preferences
     {
-        public string Provider = "MyMemory", Region = "", Endpoint = "http://localhost:5000", ProtectedKey = "";
+        public string Provider = "Offline", Region = "", Endpoint = "http://localhost:5000", ProtectedKey = "";
         public bool Pinned = true;
-        public int Interval = 1, CharactersToday, PollingVersion;
+        public int Interval = 1, CharactersToday, PollingVersion, OfflineVersion;
         public string UsageDate = "";
         public double ReadingScale = 1;
     }

@@ -14,6 +14,7 @@ namespace ReadAlong
         {
             string test = Option(args, "--self-test"); if (test != null) return Tests.Run(test);
             string networkTest = Option(args, "--network-test"); if (networkTest != null) return Tests.Network(networkTest);
+            string offlineTest=Option(args,"--offline-test");if(offlineTest!=null)return Tests.Offline(offlineTest);
             string report = Option(args, "--ui-test"), screenshot = Option(args, "--screenshot");
             bool demo = args.Contains("--demo"); string folder = Option(args, "--data-dir") ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, demo ? "demo-data" : "data"); Mutex mutex = null;
             try
@@ -31,7 +32,8 @@ namespace ReadAlong
                 mutex = new Mutex(true, "Local\\ReadAlong-" + name, out created);
                 if (!created) { MessageBox.Show("界读已经打开，请在任务栏找到它。", "界读"); return 0; }
                 var store = new Store(folder); var data = store.Load();
-                if (report != null) Tests.UIHandler = new MockHandler();
+                if(args.Contains("--use-offline")){if(!OfflineTranslator.IsInstalled)throw new InvalidOperationException("离线组件尚未安装完成。");data.Settings.Provider="Offline";data.Settings.OfflineVersion=1;store.Save(data);}
+                if (report != null) {Tests.UIHandler = new MockHandler();data.Settings.Provider="MyMemory";data.Settings.OfflineVersion=1;}
                 var window = new MainWindow(store, data, report == null ? null : Tests.UIHandler);window.SuppressAutomaticPolling=report!=null||Option(args,"--scan-preview")!=null; app.MainWindow = window;
                 app.DispatcherUnhandledException += delegate(object sender, DispatcherUnhandledExceptionEventArgs e) { if (report != null || screenshot != null) { File.WriteAllText(report ?? screenshot + ".error.txt", e.Exception.ToString()); e.Handled = true; app.Shutdown(1); } };
                 window.Loaded += delegate

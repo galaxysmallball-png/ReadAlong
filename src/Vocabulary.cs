@@ -57,7 +57,7 @@ namespace ReadAlong
             });
         }
         internal bool SavePreferences(Preferences prefs)
-        { Pause("设置已更新；点击开始后继续跟随。"); bool ok = Mutate(delegate { Data.Settings = prefs; }); Topmost = Data.Settings.Pinned; return ok; }
+        { Pause("设置已更新；点击开始后继续跟随。"); bool ok = Mutate(delegate { Data.Settings = prefs; }); Topmost = Data.Settings.Pinned;Render();UpdateActivityUI();return ok; }
         internal Task<string> TranslateWord(string word, CancellationToken token) { return translator.Translate(word, token); }
     }
 }

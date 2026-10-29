@@ -44,6 +44,7 @@ namespace ReadAlong
         internal MainWindow(Store store, AppData data, System.Net.Http.HttpMessageHandler handler)
         {
             this.store = store; Data = data; translator = new Translator(store, data, handler);
+            if(data.Settings.OfflineVersion<1){if(data.Settings.Provider=="MyMemory")data.Settings.Provider="Offline";data.Settings.OfflineVersion=1;}
             if(data.Settings.PollingVersion<1){if(data.Settings.Interval==3)data.Settings.Interval=1;data.Settings.PollingVersion=1;}
             Title = "界读 · 轻量伴读窗"; Width = Math.Min(560, SystemParameters.WorkArea.Width - 20); Height = Math.Min(650, SystemParameters.WorkArea.Height); MinWidth = 340; MinHeight = 390;
             Background = UI.B(UI.Back); FontFamily = new FontFamily("Microsoft YaHei UI"); Topmost = data.Settings.Pinned;
@@ -54,7 +55,7 @@ namespace ReadAlong
             timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) }; timer.Tick += async delegate { await Poll(); }; timer.Start();
             SourceInitialized += delegate { hwnd = new WindowInteropHelper(this).Handle; HwndSource.FromHwnd(hwnd).AddHook(Hook); if (!Native.RegisterHotKey(hwnd, 1741, 0x4003, 0x54)) footer.Text = "暂停快捷键被占用，请使用伴读按钮"; Native.RegisterHotKey(hwnd,1742,0x4003,0x4D); };
             Closed += delegate { closing = true; timer.Stop(); session.Cancel(); translations.Cancel(); reader.Dispose(); if (hwnd != IntPtr.Zero) Native.UnregisterHotKey(hwnd, 1741); Native.UnregisterHotKey(hwnd,1742); translator.Dispose(); };
-            Render();
+            Render();UpdateActivityUI();
         }
         static void At(Grid grid, UIElement element, int row) { Grid.SetRow(element, row); grid.Children.Add(element); }
         IntPtr Hook(IntPtr window, int message, IntPtr wparam, IntPtr lparam, ref bool handled)
@@ -72,7 +73,7 @@ namespace ReadAlong
                 var sample = UI.Text("Save your workspace\nbefore closing.", 25, UI.Ink); sample.FontFamily = ReadingType.English;sample.FontStyle=FontStyles.Italic; sample.LineHeight = 35; sample.Margin = new Thickness(0, 28, 0, 0); intro.Children.Add(sample);
                 var translation = UI.Text("关闭前，请保存你的工作区。", 17, UI.Muted);translation.FontFamily=ReadingType.Chinese; intro.Children.Add(new Border { Child = translation, BorderBrush = UI.B("#C7D1BC"), BorderThickness = new Thickness(2, 0, 0, 0), Padding = new Thickness(11, 3, 0, 3), Margin = new Thickness(0, 12, 0, 24) });
                 var explain = UI.Text("点击上方开始伴读 → 切回英文应用\n遇到不认识的词，点一下就能收藏。", 12, UI.Muted); explain.LineHeight = 24; intro.Children.Add(explain);
-                var privacy = UI.Text("示例对照。识别在本机完成，截图不上传。\n只有待翻译文字交给你选择的翻译服务。", 10.5, UI.Muted); privacy.LineHeight = 20; privacy.Margin = new Thickness(0, 20, 0, 0); intro.Children.Add(privacy); content.Children.Add(intro); return;
+                var privacy = UI.Text(Data.Settings.Provider=="Offline"?"示例对照。本地离线模式，识别与翻译均在本机完成。\n文字不上传，也没有每日字符额度。":"示例对照。识别在本机完成，截图不上传。\n只有待翻译文字交给你选择的翻译服务。", 10.5, UI.Muted); privacy.LineHeight = 20; privacy.Margin = new Thickness(0, 20, 0, 0); intro.Children.Add(privacy); content.Children.Add(intro); return;
             }
             foreach (var item in segments)
             {

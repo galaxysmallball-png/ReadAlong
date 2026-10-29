@@ -54,7 +54,8 @@ namespace ReadAlong
         {
             bool busy=recognizing||translating;
             if(mainFollow!=null){mainFollow.Content=following?"暂停伴读":"开始伴读";mainFollow.Background=UI.B(following?"#DDF6EE":UI.Blue);mainFollow.Foreground=UI.B(following?UI.Blue:"#FFFFFF");}
-            if(activityCaption!=null)activityCaption.Text=recognizing?"正在识别当前窗口…":translating?"正在逐句翻译…":following?"伴读中 · 等待界面变化":"已暂停";
+            bool local=Data.Settings.Provider=="Offline";
+            if(activityCaption!=null)activityCaption.Text=recognizing?"正在识别当前窗口…":translating?(local?"正在本机翻译…":"正在逐句翻译…"):following?(local?"伴读中 · 本地离线":"伴读中 · 等待界面变化"):(local?"已暂停 · 本地离线":"已暂停");
             if(recognitionLight!=null)recognitionLight.SetActive(busy);
             if(dockMotion!=null)dockMotion.Mini.SetActivity(busy);
         }

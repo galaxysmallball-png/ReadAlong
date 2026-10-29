@@ -10,21 +10,24 @@ namespace ReadAlong
     // Small, code-drawn reading mark: crisp at every window scale.
     public sealed class ReaderMark : FrameworkElement
     {
-        static readonly Geometry pages=Geometry.Parse("M7,10 C10,8.5 12.6,9.5 16,11.2 C19.4,9.5 22,8.5 25,10 L25,23 C21.6,21.7 19.3,22.3 16,24 C12.7,22.3 10.4,21.7 7,23 Z M16,11.2 L16,24");
-        static readonly Geometry lines=Geometry.Parse("M10,13.5 L13,14.2 M10,16.8 L13,17.5 M19,14.2 L22,13.5 M19,17.5 L22,16.8");
-        readonly LinearGradientBrush fill=new LinearGradientBrush(Color.FromRgb(24,160,145),Color.FromRgb(0,102,102),65);
+        static readonly Geometry rear=Geometry.Parse("M11.8,5.1 L25.6,7.5 Q27.3,7.8 26.8,9.8 L23.6,26 Q17.7,22.7 10.2,24.6 Z");
+        static readonly Geometry left=Geometry.Parse("M4.8,8 Q10.5,6.8 16.4,11.2 L14.5,27 Q8.9,23.5 3,25 Z");
+        static readonly Geometry turning=Geometry.Parse("M16.4,11.2 Q20.7,6.4 26.2,4.5 L23,20.7 Q18.4,22.3 14.5,27 Z");
+        static readonly Geometry crease=Geometry.Parse("M16.4,11.4 L14.7,25.3 M19.1,12.5 Q21,10.4 23,9.4");
+        readonly LinearGradientBrush ink=new LinearGradientBrush(Color.FromRgb(37,172,153),Color.FromRgb(0,105,103),70);
+        readonly LinearGradientBrush paper=new LinearGradientBrush(Color.FromRgb(248,255,252),Color.FromRgb(203,242,226),90);
         bool running;
-        public ReaderMark(){Width=30;Height=30;IsHitTestVisible=false;fill.Freeze();}
+        public ReaderMark(){Width=30;Height=30;IsHitTestVisible=false;ink.Freeze();paper.Freeze();}
         public void SetRunning(bool value){if(running==value)return;running=value;InvalidateVisual();}
         protected override void OnRender(DrawingContext dc)
         {
             dc.PushTransform(new ScaleTransform(ActualWidth/32,ActualHeight/32));
-            dc.DrawRoundedRectangle(fill,new Pen(UI.B("#BBFFFFFF"),.8),new Rect(1,1,30,30),10,10);
-            dc.DrawRoundedRectangle(null,new Pen(UI.B("#30FFFFFF"),.6),new Rect(2.2,2.2,27.6,27.6),8.8,8.8);
-            var stroke=new Pen(UI.B("#F4FFFC"),1.15){LineJoin=PenLineJoin.Round,StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
-            dc.DrawGeometry(UI.B("#0FFFFFFF"),stroke,pages);
-            dc.DrawGeometry(null,new Pen(UI.B("#A5F5E4"),.9){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},lines);
-            dc.DrawEllipse(UI.B(running?"#C8F3A8":"#A5D2C9"),new Pen(UI.B("#FAFFFD"),1),new Point(27.5,27.5),2.5,2.5);
+            dc.PushTransform(new TranslateTransform(0,.8));dc.DrawGeometry(UI.B("#172D6860"),null,rear);dc.Pop();
+            dc.DrawGeometry(UI.B("#BFC2EA"),null,rear);
+            dc.DrawGeometry(ink,null,left);
+            dc.DrawGeometry(paper,new Pen(UI.B("#83B8A9"),.65){LineJoin=PenLineJoin.Round},turning);
+            var stroke=new Pen(UI.B(running?"#147C70":"#4A9487"),.85){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
+            dc.DrawGeometry(null,stroke,crease);
             dc.Pop();
         }
     }

@@ -10,4 +10,10 @@ dist/
 qa/
 .vs/
 *.user
+**/Offline/runtime/
+**/Offline/models/
+**/Offline/downloads/
+**/Offline/ready.json
+**/__pycache__/
+*.download
 

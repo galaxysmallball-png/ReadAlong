@@ -17,10 +17,10 @@ namespace ReadAlong
         {
             if (following) return; following = true; errors = 0; hash = ""; lastRead = DateTime.MinValue; session.Cancel(); session = new CancellationTokenSource();
             windowVersion++; follow.Content = "暂停伴读"; Status("伴读已开启", "切换到英文应用，遇到生词可以点一下收藏。");UpdateActivityUI();
-            try{if(!SuppressAutomaticPolling)reader.WarmUp();}catch(Exception ex){Status("识别组件暂不可用",ex.Message);}
+            try{if(!SuppressAutomaticPolling){reader.WarmUp();translator.WarmUp();}}catch(Exception ex){Status("组件暂不可用",ex.Message);}
         }
         internal void Pause(string reason)
-        { following = false; windowVersion++; contentVersion++; session.Cancel(); translations.Cancel();reader.Stop(); follow.Content = "开始伴读"; Status("已暂停", reason);ResetActivity(); }
+        { following = false; windowVersion++; contentVersion++; session.Cancel(); translations.Cancel();reader.Stop();translator.StopOffline(); follow.Content = "开始伴读"; Status("已暂停", reason);ResetActivity(); }
         void Toggle() { if (following) Pause("保留当前对照。再次开始后，只读取你当前使用的窗口。"); else Start(); }
         async Task Poll()
         {
@@ -76,7 +76,7 @@ namespace ReadAlong
                     string chinese = await translator.Translate(segment.English, token);
                     if (token.IsCancellationRequested || version != contentVersion || closing) return;
                     segment.Chinese = chinese; errors = 0; completed++; UpdateSegment(segment);
-                    Status(sourceTitle == "" ? "手动英文" : sourceTitle, source + " · " + completed + " / " + work.Count + " 句已译 · " + Data.Settings.Provider);
+                    Status(sourceTitle == "" ? "手动英文" : sourceTitle, source + " · " + completed + " / " + work.Count + " 句已译 · " + Translator.ProviderName(Data.Settings.Provider));
                 }
                 catch (OperationCanceledException) { }
                 catch (TranslationException ex)

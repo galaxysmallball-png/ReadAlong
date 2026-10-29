@@ -4,7 +4,7 @@
 
 ![对照阅读](docs/preview.png)
 
-![行楷书页浮窗](docs/mini-preview.png)
+![行楷折页浮窗](docs/mini-preview.png)
 
 ## 直接运行
 
@@ -14,10 +14,11 @@ Windows 10 / 11 x64，需 .NET Framework 4.8。下载或克隆整个仓库，在
 powershell -NoProfile -ExecutionPolicy Bypass -File .\launch.ps1
 ```
 
-仓库含编译后的 app/界读.exe 和识别组件。第一次启动脚本从字体原作者 GitHub 下载固定版本，逐一校验 SHA-256；之后不重复下载，也不安装系统字体。字体约 27 MB，许可在 Fonts 目录。已有完整便携包时直接双击「界读.exe」，不必运行脚本。
+仓库含编译后的 app/界读.exe 和识别组件。第一次启动脚本下载固定版本字体（约 27 MB）及中英离线组件（约 116 MB），逐一校验 SHA-256；之后不重复下载。离线组件自带便携 Python，不修改系统 Python，也不安装系统字体。已有完整离线便携包时直接双击「界读.exe」，无需再次下载。
 
 ## 功能
 
+- 默认本地离线中英翻译，完全免费、无需密钥，没有每日字符额度。
 - 仅识别当前前台窗口；本机 UI Automation 优先，Windows OCR 补充。
 - 主界面直接开始／暂停，识别和翻译时显示扫光。
 - 默认每 1 秒检测一次，复用识别进程与 OCR 引擎；重复文字不会打断正在进行的翻译。
@@ -44,7 +45,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\launch.ps1
 
 启动默认暂停。识别截图仅在本机内存处理，不上传、不保存；联网翻译只发送待翻译的文字。只保存主动收藏的单词及上下文，普通译文缓存仅保留在本次运行。
 
-默认使用 MyMemory 免费服务，限额可能导致暂停；也可配置自己的 Azure Translator 或 LibreTranslate。受保护窗口、部分游戏或显卡绘制窗口可能不支持识别，可使用「粘贴英文」。更多操作见 [使用说明](docs/使用说明.md)。
+默认使用 Argos 中英模型与 CTranslate2 在 CPU 上离线翻译，文字不上传；不会因本地模型缺失或出错而自动切到联网服务。设置中仍可手动选择有每日额度的 MyMemory、自己的 Azure Translator 或 LibreTranslate。受保护窗口、部分游戏或显卡绘制窗口可能不支持识别，可使用「粘贴英文」。更多操作见 [使用说明](docs/使用说明.md)。
 
 个人学习数据保存在 app/data，已由 .gitignore 排除；不要提交自己的单词本、屏幕内容或密钥。字体原始许可已附，设计参考见 [UI 参考](docs/UI美化参考.md)。
 
@@ -56,8 +57,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\launch.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Verify
 ```
 
-程序生成在 dist/界读，独立自拟测试记录在 qa。默认测试不联网，也不读取个人界面。39 项检查覆盖识别进程复用、取消恢复、输入框排除、重复翻译处理、滚动条拖动、窗口缩放、侧栏、词库、收缩反向及减少动画路径。详见 [验证结果](docs/验证结果.md)。
+程序生成在 dist/界读，独立自拟测试记录在 qa。默认测试不联网，也不读取个人界面。48 项检查覆盖识别进程复用、取消恢复、输入框排除、重复翻译处理、滚动条拖动、窗口缩放、侧栏、词库、收缩反向及减少动画路径。详见 [验证结果](docs/验证结果.md)。
 
-小浮窗采用独立绘制的书页徽标、细亮边与柔和玻璃渐变。「界读」字标优先使用本机已有的华文行楷，未安装时回退到随包文楷；华文行楷字库不包含在仓库或便携包中。
+小浮窗采用独立绘制的翻页标记、细亮边与柔和玻璃渐变。「界读」字标优先使用本机已有的华文行楷，未安装时回退到随包文楷；华文行楷字库不包含在仓库或便携包中。
 
-程序版本：1.7.1。
+程序版本：1.8.0。
+
+
+## 离线模型与许可
+
+使用 Argos Translate 英译简体中文 1.9 模型，按句在 CTranslate2 CPU int8 引擎推理，保留原模型、metadata 和 README；模型源自 OPUS-MT，原始模型许可为 CC BY 4.0。来源、作者及许可见 [模型说明](offline/MODEL-NOTICE.txt)。Python、CTranslate2、SentencePiece、NumPy 和 PyYAML 的许可随各自运行组件保留。
+
+仓库不提交大模型和运行环境，下载地址及 SHA-256 固定在 offline/assets.json。安装入口为 scripts/Setup-Offline.ps1。完整离线便携包已包含运行环境和模型，解压后可在没有网络的情况下翻译。
+
+模型首次加载会略慢，之后复用进程及译文缓存；本地模式不计每日额度。暂停会取消当前推理；收成浮窗仍继续伴读。翻译质量取决于本地模型，复杂句子可能需要核对。

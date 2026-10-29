@@ -1,0 +1,19 @@
+English -> Simplified Chinese local translation
+
+Model: Argos Translate translate-en_zh-1_9 (version 1.9)
+Package index: https://github.com/argosopentech/argospm-index
+Package: https://argos-net.com/v1/translate-en_zh-1_9.argosmodel
+
+The package's original README credits Jorg Tiedemann and Santhosh Thottingal,
+"OPUS-MT -- Building open translation services for the World", EAMT 2020,
+and states that the original OPUS model is licensed under CC BY 4.0:
+https://creativecommons.org/licenses/by/4.0/
+
+Original package weights, metadata and README are retained without modification.
+ReadAlong supplies its own sentence-by-sentence runner using CTranslate2 and
+SentencePiece. These libraries and the portable Python runtime retain their
+respective license files in the runtime directory.
+
+Argos Translate: https://github.com/argosopentech/argos-translate
+CTranslate2: https://github.com/OpenNMT/CTranslate2
+SentencePiece: https://github.com/google/sentencepiece

@@ -22,6 +22,11 @@ namespace ReadAlong
         readonly Dictionary<string,string> cache = new Dictionary<string,string>();
         readonly Store store;
         readonly AppData data;
+        readonly OfflineTranslator offline=new OfflineTranslator();
+        internal int OfflineLaunches {get{return offline.Launches;}}
+        public void WarmUp(){if(data.Settings.Provider=="Offline")offline.WarmUp();}
+        public void StopOffline(){offline.Stop();}
+        public static string ProviderName(string provider){return provider=="Offline"?"本地离线":provider;}
         public Translator(Store store, AppData data, HttpMessageHandler handler)
         {
             this.store = store; this.data = data;
@@ -49,6 +54,12 @@ namespace ReadAlong
             {
                 token.ThrowIfCancellationRequested();
                 lock (cache) if (cache.TryGetValue(key, out local)) return local;
+                if(prefs.Provider=="Offline")
+                {
+                    string translated=await offline.Translate(text,token);token.ThrowIfCancellationRequested();
+                    lock(cache){if(cache.Count>2200)cache.Clear();cache[key]=translated;}
+                    return translated;
+                }
                 HttpRequestMessage request;
                 if (prefs.Provider == "Azure")
                 {
@@ -69,12 +80,13 @@ namespace ReadAlong
                 }
                 else
                 {
+                    if(prefs.Provider!="MyMemory")throw new TranslationException("未知的翻译服务，请在设置中重新选择。",false);
                     if (Encoding.UTF8.GetByteCount(text) > 500) throw new TranslationException("本句超出免费接口长度限制，请拆成更短的句子。", false);
                     lock (Store.Sync)
                     {
                         string today = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "China Standard Time").ToString("yyyy-MM-dd");
                         if (prefs.UsageDate != today) { prefs.UsageDate = today; prefs.CharactersToday = 0; }
-                        if (prefs.CharactersToday + text.Length > 4900) throw new TranslationException("今日免费试用额度接近上限。请明天继续，或在设置中切换 Azure / 自建 LibreTranslate。", true);
+                        if (prefs.CharactersToday + text.Length > 4900) throw new TranslationException("今日 MyMemory 免费额度接近上限。可在设置中切换为「本地离线」继续使用。", true);
                         prefs.CharactersToday += text.Length; store.Save(data);
                     }
                     request = new HttpRequestMessage(HttpMethod.Get, "https://api.mymemory.translated.net/get?q=" + Uri.EscapeDataString(text) + "&langpair=en%7Czh-CN");
@@ -110,10 +122,10 @@ namespace ReadAlong
             var value = Store.Parse<Dictionary<string,object>>(body);
             if (provider == "LibreTranslate")
             { if (value.ContainsKey("error")) throw new TranslationException("LibreTranslate：" + value["error"], false); return (string)value["translatedText"]; }
-            if ((value.ContainsKey("quotaFinished") && value["quotaFinished"] is bool && (bool)value["quotaFinished"]) || (value.ContainsKey("responseStatus") && Convert.ToInt32(value["responseStatus"]) == 429)) throw new TranslationException("MyMemory 免费额度已用尽，请明天继续或更换服务。", true);
+            if ((value.ContainsKey("quotaFinished") && value["quotaFinished"] is bool && (bool)value["quotaFinished"]) || (value.ContainsKey("responseStatus") && Convert.ToInt32(value["responseStatus"]) == 429)) throw new TranslationException("MyMemory 免费额度已用尽，可切换本地离线模式，或明天再试。", true);
             if (!value.ContainsKey("responseStatus") || Convert.ToInt32(value["responseStatus"]) != 200) throw new TranslationException("MyMemory 暂未提供有效译文，请稍后重试。", false);
             return (string)((Dictionary<string,object>)value["responseData"])["translatedText"];
         }
-        public void Dispose() { http.Dispose(); }
+        public void Dispose() { offline.Dispose();http.Dispose(); }
     }
 }

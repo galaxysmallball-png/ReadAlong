@@ -50,6 +50,7 @@ namespace ReadAlong
                 Check(Translator.ParseResponse("Azure", "[{\"translations\":[{\"text\":\"译文\",\"to\":\"zh-Hans\"}]}]") == "译文", "Azure parser");
                 Check(Translator.ParseResponse("LibreTranslate", "{\"translatedText\":\"译文\"}") == "译文", "Libre parser"); passed.Add("PASS Azure and LibreTranslate response contracts");
                 var handler = new MockHandler();
+                data.Settings.Provider="MyMemory";
                 using (var service = new Translator(store, data, handler))
                 {
                     Check(service.Translate("Settings", CancellationToken.None).GetAwaiter().GetResult() == "设置" && handler.Count == 0, "Built-in glossary bypasses network");
@@ -91,7 +92,7 @@ namespace ReadAlong
         {
             try
             {
-                var store = new Store(Path.Combine(Path.GetDirectoryName(report), "network-data")); var data = new AppData();
+                var store = new Store(Path.Combine(Path.GetDirectoryName(report), "network-data")); var data = new AppData();data.Settings.Provider="MyMemory";
                 using (var service = new Translator(store, data, null))
                 {
                     string translated = service.Translate("Choose a comfortable reading speed for this application.", CancellationToken.None).GetAwaiter().GetResult();

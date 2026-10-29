@@ -10,7 +10,7 @@ namespace ReadAlong
 {
     public partial class MainWindow
     {
-        TextBlock studioHeading, studioCaption, readingCount;
+        TextBlock studioHeading, studioCaption, readingCount, privacyNote;
         Grid studioLegend;
         bool studioWide;
         Border drawer;
@@ -55,7 +55,7 @@ namespace ReadAlong
             var pin=UI.Button("切换窗口置顶",false,delegate{var p=Store.Parse<Preferences>(Store.Json(Data.Settings));p.Pinned=!p.Pinned;SavePreferences(p);});options.Children.Add(pin);
             var settings=UI.Button("翻译与偏好设置",false,delegate{new SettingsDialog(this).ShowDialog();});settings.Margin=new Thickness(0,8,0,18);options.Children.Add(settings);
             footer=UI.Text("Ctrl+Alt+T 暂停 / 继续\nCtrl+Alt+M 收缩 / 展开",10.5,UI.Muted);footer.LineHeight=20;options.Children.Add(footer);
-            var privacy=UI.Text("只识别当前窗口，截图不上传。\n翻译文字发送给你选择的服务。",10.5,UI.Muted);privacy.LineHeight=20;privacy.Margin=new Thickness(0,16,0,0);options.Children.Add(privacy);
+            privacyNote=UI.Text("",10.5,UI.Muted);privacyNote.LineHeight=20;privacyNote.Margin=new Thickness(0,16,0,0);options.Children.Add(privacyNote);
             sideOptions=new ScrollViewer{Content=options,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};drawerDeck.Children.Add(sideOptions);
             sidebarBook=new StackPanel();var bookScroll=new ScrollViewer{Content=sidebarBook,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};AutomationName(bookScroll,"SidebarBook");drawerDeck.Children.Add(bookScroll);
             sideInspector=MakeInspector();drawerDeck.Children.Add(sideInspector);
@@ -82,6 +82,7 @@ namespace ReadAlong
         void RenderSidebar()
         {
             if(drawerDeck==null)return;
+            if(privacyNote!=null)privacyNote.Text=Data.Settings.Provider=="Offline"?"识别与翻译均在本机完成。\n没有每日额度，文字不上传。":"只识别当前窗口，截图不上传。\n翻译文字发送给你选择的服务。";
             sideOptions.Visibility=sideMode==0?Visibility.Visible:Visibility.Collapsed;
             drawerDeck.Children[1].Visibility=sideMode==1?Visibility.Visible:Visibility.Collapsed;
             sideInspector.Visibility=sideMode==2?Visibility.Visible:Visibility.Collapsed;

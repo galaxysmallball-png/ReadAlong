@@ -155,23 +155,46 @@ namespace ReadAlong
         {
             Owner = main; Title = "翻译设置"; Width = 460; Height = 660; MinWidth = 360; MinHeight = 480; FontFamily = main.FontFamily; Background = UI.B(UI.Back); WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
             var panel = new StackPanel { Margin = new Thickness(24) }; panel.Children.Add(UI.Text("翻译与识别", 23, UI.Ink));
-            var note = UI.Text("识别在本机完成。联网时发送英文文字，不发送截图。只有你收藏的单词和原句会写入生词本。", 12, UI.Muted); note.LineHeight = 21; note.Margin = new Thickness(0, 12, 0, 18); panel.Children.Add(note);
+            var note = UI.Text("本地离线模式下，识别与翻译都在你的电脑完成。选择在线服务时才会发送待翻译文字，不发送截图。", 12, UI.Muted); note.LineHeight = 21; note.Margin = new Thickness(0, 12, 0, 18); panel.Children.Add(note);
             panel.Children.Add(UI.Text("翻译服务", 12, UI.Muted));
-            var provider = new ComboBox { Margin = new Thickness(0, 7, 0, 12), ItemsSource = new[] { "MyMemory（免费试用）", "Azure Translator（自己的密钥）", "LibreTranslate（自己的服务）" }, SelectedIndex = main.Data.Settings.Provider == "Azure" ? 1 : main.Data.Settings.Provider == "LibreTranslate" ? 2 : 0 }; panel.Children.Add(provider);
+            string[] providers={"Offline","MyMemory","Azure","LibreTranslate"};
+            var provider = new ComboBox { Margin = new Thickness(0, 7, 0, 12), ItemsSource = new[] { "本地离线（完全免费）", "MyMemory（免费 · 每日有额度）", "Azure Translator（自己的密钥）", "LibreTranslate（自己的服务）" }, SelectedIndex = Math.Max(0,Array.IndexOf(providers,main.Data.Settings.Provider)) }; panel.Children.Add(provider);
             var serviceHint = UI.Text("", 12, UI.Muted); serviceHint.LineHeight = 20; serviceHint.Margin = new Thickness(0, 0, 0, 12); panel.Children.Add(serviceHint);
+            var install=UI.Button(OfflineTranslator.IsInstalled?"检查离线组件":"安装离线翻译",false,null);install.HorizontalAlignment=HorizontalAlignment.Left;install.Margin=new Thickness(0,0,0,12);panel.Children.Add(install);
+            var installLight=new ScanShimmer{Margin=new Thickness(0,0,0,12)};panel.Children.Add(installLight);
             var keyLabel = UI.Text("API 密钥", 12, UI.Muted); panel.Children.Add(keyLabel);
             var secret = new PasswordBox { Padding = new Thickness(9), Margin = new Thickness(0, 7, 0, 12) }; try { secret.Password = Store.Unprotect(main.Data.Settings.ProtectedKey); } catch { } panel.Children.Add(secret);
             var addressLabel = UI.Text("区域 / 服务地址", 12, UI.Muted); panel.Children.Add(addressLabel);
             var address = new TextBox { Margin = new Thickness(0, 7, 0, 14) }; panel.Children.Add(address);
             Action update = delegate
             {
-                string selectedName = provider.SelectedIndex == 1 ? "Azure" : provider.SelectedIndex == 2 ? "LibreTranslate" : "MyMemory";
+                string selectedName=providers[Math.Max(0,provider.SelectedIndex)];
                 try { secret.Password = selectedName == main.Data.Settings.Provider ? Store.Unprotect(main.Data.Settings.ProtectedKey) : ""; } catch { secret.Password = ""; }
-                bool my = provider.SelectedIndex == 0; secret.Visibility = keyLabel.Visibility = my ? Visibility.Collapsed : Visibility.Visible; address.Visibility = addressLabel.Visibility = my ? Visibility.Collapsed : Visibility.Visible;
-                serviceHint.Text = my ? "MyMemory 匿名免费额度为每天 5,000 字符，适合试用。常用软件词和本次运行中译过的句子优先使用本地结果，不消耗网络额度。达到额度会暂停。" : provider.SelectedIndex == 1 ? "Azure 需要你自己的翻译服务密钥，可能产生费用。密钥用 Windows 当前账户加密保存。区域请填写资源对应值，例如 eastasia。" : "连接你部署的 LibreTranslate。支持 HTTPS；本机服务可使用 http://localhost。目标语言为 zh，需服务端安装中英模型。";
-                addressLabel.Text = provider.SelectedIndex == 1 ? "Azure 区域（按资源配置填写）" : "LibreTranslate 服务地址（不带 /translate）";
-                address.Text = provider.SelectedIndex == 1 ? main.Data.Settings.Region : main.Data.Settings.Endpoint;
+                bool keyed=selectedName=="Azure"||selectedName=="LibreTranslate";secret.Visibility=keyLabel.Visibility=address.Visibility=addressLabel.Visibility=keyed?Visibility.Visible:Visibility.Collapsed;install.Visibility=selectedName=="Offline"?Visibility.Visible:Visibility.Collapsed;
+                serviceHint.Text = selectedName=="Offline"?(OfflineTranslator.IsInstalled?"已就绪 · 中英离线翻译。无需密钥，没有每日字符额度，文字不离开本机。":"一次下载约 116 MB，完成后无需联网翻译。不需要安装 Python，没有每日字符额度。") : selectedName=="MyMemory" ? "MyMemory 匿名免费额度为每天 5,000 字符。常用词及本次运行中译过的句子优先使用本地结果。达到额度会暂停，可切换本地离线模式。" : selectedName=="Azure" ? "Azure 需要你自己的翻译服务密钥，可能产生费用。密钥用 Windows 当前账户加密保存。区域请填写资源对应值，例如 eastasia。" : "连接你部署的 LibreTranslate。支持 HTTPS；本机服务可使用 http://localhost。目标语言为 zh，需服务端安装中英模型。";
+                addressLabel.Text = selectedName=="Azure" ? "Azure 区域（按资源配置填写）" : "LibreTranslate 服务地址（不带 /translate）";
+                address.Text = selectedName=="Azure" ? main.Data.Settings.Region : main.Data.Settings.Endpoint;
             }; provider.SelectionChanged += delegate { update(); }; update();
+            install.Click+=async delegate
+            {
+                main.Pause("正在准备离线翻译。");install.IsEnabled=false;provider.IsEnabled=false;installLight.SetActive(true);serviceHint.Text="正在下载和校验中英模型，请稍候…";
+                try
+                {
+                    string script=System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Setup-Offline.ps1");
+                    if(!System.IO.File.Exists(script))script=System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"..","scripts","Setup-Offline.ps1"));
+                    if(!System.IO.File.Exists(script))throw new Exception("缺少安装脚本，请完整解压新版程序。");
+                    var info=new ProcessStartInfo("powershell.exe","-NoProfile -ExecutionPolicy Bypass -File \""+script+"\" -AppDirectory \""+AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\')+"\""){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};
+                    using(var setup=Process.Start(info))
+                    {
+                        var output=setup.StandardOutput.ReadToEndAsync();var error=setup.StandardError.ReadToEndAsync();
+                        await System.Threading.Tasks.Task.Run(delegate{setup.WaitForExit();});await output;await error;
+                        if(setup.ExitCode!=0||!OfflineTranslator.IsInstalled)throw new Exception("安装未完成，请检查网络连接后重试。已下载的组件会复用。");
+                    }
+                    install.Content="检查离线组件";update();
+                }
+                catch(Exception ex){serviceHint.Text=ex.Message;}
+                finally{install.IsEnabled=true;provider.IsEnabled=true;installLight.SetActive(false);}
+            };
             panel.Children.Add(UI.Text("检测间隔", 12, UI.Muted));
             var intervals=new[]{1,2,3,5};
             var interval = new ComboBox { ItemsSource = new[] { "1 秒 · 快速", "2 秒", "3 秒", "5 秒 · 省电" }, SelectedIndex = Math.Max(0,Array.IndexOf(intervals,main.Data.Settings.Interval)), Margin = new Thickness(0, 7, 0, 16) }; panel.Children.Add(interval);
@@ -179,10 +202,10 @@ namespace ReadAlong
             var language = UI.Button("打开 Windows 语言设置", false, delegate { Process.Start(new ProcessStartInfo("ms-settings:regionlanguage") { UseShellExecute = true }); }); language.HorizontalAlignment = HorizontalAlignment.Left; language.Margin = new Thickness(0, 9, 0, 17); panel.Children.Add(language);
             var save = UI.Button("保存设置", true, delegate
             {
-                var prefs = Store.Parse<Preferences>(Store.Json(main.Data.Settings)); prefs.Provider = provider.SelectedIndex == 1 ? "Azure" : provider.SelectedIndex == 2 ? "LibreTranslate" : "MyMemory";
+                var prefs = Store.Parse<Preferences>(Store.Json(main.Data.Settings)); prefs.Provider=providers[Math.Max(0,provider.SelectedIndex)];prefs.OfflineVersion=1;
                 if (prefs.Provider == "Azure") prefs.Region = address.Text.Trim(); else if (prefs.Provider == "LibreTranslate") prefs.Endpoint = address.Text.Trim();
                 prefs.Interval = intervals[Math.Max(0,interval.SelectedIndex)];
-                try { prefs.ProtectedKey = Store.Protect(secret.Password.Trim()); if (main.SavePreferences(prefs)) Close(); }
+                try { if(prefs.Provider=="Azure"||prefs.Provider=="LibreTranslate")prefs.ProtectedKey=Store.Protect(secret.Password.Trim()); if (main.SavePreferences(prefs)) Close(); }
                 catch (Exception ex) { MessageBox.Show(this, ex.Message, "设置未保存"); }
             }); panel.Children.Add(save);
             Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; UI.WrapDialog(this);
