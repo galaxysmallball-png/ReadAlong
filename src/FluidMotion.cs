@@ -56,7 +56,8 @@ namespace ReadAlong
     }
     public class MiniReader : Window
     {
-        readonly TextBlock label;
+        readonly TextBlock label, caption;
+        readonly ReaderMark emblem;
         readonly ScanShimmer activityLight = new ScanShimmer();
         bool dragging, pressed;
         Point grab, origin;
@@ -67,14 +68,20 @@ namespace ReadAlong
         public Action ActivateReader;
         public MiniReader(Action toggle,Action pause,Action exit)
         {
-            Width=132;Height=58;WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;ResizeMode=ResizeMode.CanResizeWithGrip;MinWidth=110;MinHeight=52;MaxWidth=240;MaxHeight=110;Topmost=true;ShowInTaskbar=false;ShowActivated=false;WindowEdges.Enable(this);
+            Width=132;Height=58;WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;ResizeMode=ResizeMode.CanResize;MinWidth=110;MinHeight=52;MaxWidth=240;MaxHeight=110;Topmost=true;ShowInTaskbar=false;ShowActivated=false;WindowEdges.Enable(this);
             var row=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};
-            var dot=new System.Windows.Shapes.Ellipse{Width=7,Height=7,Fill=UI.B(UI.Blue),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,9,0)};row.Children.Add(dot);label=UI.Text("界读",12,UI.Ink);row.Children.Add(label);
-            var surface=new Grid();surface.Children.Add(row);activityLight.VerticalAlignment=VerticalAlignment.Bottom;activityLight.Margin=new Thickness(18,0,18,10);surface.Children.Add(activityLight);
-            Content=new Border{Margin=new Thickness(8),CornerRadius=new CornerRadius(21),Background=new LinearGradientBrush(Color.FromArgb(238,222,255,244),Color.FromArgb(238,235,232,255),20),BorderBrush=UI.B("#B6DCCF"),BorderThickness=new Thickness(1),Child=surface,Effect=new DropShadowEffect{BlurRadius=13,ShadowDepth=2,Opacity=.16}};
+            emblem=new ReaderMark{Margin=new Thickness(0,0,9,0),VerticalAlignment=VerticalAlignment.Center};row.Children.Add(emblem);
+            var wordmark=new StackPanel{VerticalAlignment=VerticalAlignment.Center};label=UI.Text("界读",22,"#214C46");label.FontFamily=ReadingType.Wordmark;label.TextWrapping=TextWrapping.NoWrap;label.LineHeight=24;wordmark.Children.Add(label);
+            caption=UI.Text("EN · 中",8.5,"#58776F");caption.TextWrapping=TextWrapping.NoWrap;caption.LineHeight=10;caption.Margin=new Thickness(1,-1,0,0);wordmark.Children.Add(caption);row.Children.Add(wordmark);
+            var surface=new Grid();surface.Children.Add(new Border{CornerRadius=new CornerRadius(20),Margin=new Thickness(1),BorderThickness=new Thickness(1),BorderBrush=UI.B("#D9FFFFFF"),IsHitTestVisible=false});
+            surface.Children.Add(new Viewbox{Child=row,Stretch=Stretch.Uniform,MaxWidth=142,MaxHeight=45,Margin=new Thickness(11,4,11,4),HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center});
+            activityLight.Height=2;activityLight.VerticalAlignment=VerticalAlignment.Bottom;activityLight.Margin=new Thickness(23,0,23,3);surface.Children.Add(activityLight);
+            var material=new LinearGradientBrush{StartPoint=new Point(0,0),EndPoint=new Point(1,1)};material.GradientStops.Add(new GradientStop(Color.FromArgb(249,247,255,252),0));material.GradientStops.Add(new GradientStop(Color.FromArgb(240,220,246,234),.48));material.GradientStops.Add(new GradientStop(Color.FromArgb(246,232,225,249),1));
+            var shell=new Border{Margin=new Thickness(8),CornerRadius=new CornerRadius(21),Background=material,BorderBrush=UI.B("#9BBFB5"),BorderThickness=new Thickness(1),Child=surface,Effect=new DropShadowEffect{Color=Color.FromRgb(37,76,63),BlurRadius=14,ShadowDepth=2,Opacity=.15}};Content=shell;
+            MouseEnter+=delegate{shell.BorderBrush=UI.B("#5BABA0");};MouseLeave+=delegate{shell.BorderBrush=UI.B("#9BBFB5");};
             ToolTip="单击展开 · 拖动移动 · 右键更多";
             var menu=new ContextMenu();Add(menu,"展开对照阅读",toggle);Add(menu,"放大浮窗",delegate{SetMiniScale(Width/132+.15);});Add(menu,"缩小浮窗",delegate{SetMiniScale(Width/132-.15);});Add(menu,"恢复浮窗大小",delegate{SetMiniScale(1);});Add(menu,"暂停 / 继续伴读",pause);Add(menu,"退出界读",exit);ContextMenu=menu;
-            ActivateReader=toggle; PreviewMouseWheel+=delegate(object sender,MouseWheelEventArgs e){if((Keyboard.Modifiers&ModifierKeys.Control)!=0){SetMiniScale(Width/132+(e.Delta>0?.1:-.1));e.Handled=true;}}; SizeChanged+=delegate{label.FontSize=Math.Max(11,Math.Min(16,12*ActualWidth/132));};
+            ActivateReader=toggle; PreviewMouseWheel+=delegate(object sender,MouseWheelEventArgs e){if((Keyboard.Modifiers&ModifierKeys.Control)!=0){SetMiniScale(Width/132+(e.Delta>0?.1:-.1));e.Handled=true;}};
             MouseLeftButtonDown+=delegate(object s,MouseButtonEventArgs e){CompositionTarget.Rendering-=SnapFrame;grab=PointToScreen(e.GetPosition(this));origin=new Point(Left,Top);pressed=true;dragging=false;CaptureMouse();e.Handled=true;};
             MouseMove+=delegate(object s,MouseEventArgs e){if(!pressed)return;Point at=PointToScreen(e.GetPosition(this));Vector delta=at-grab;if(delta.Length>6)dragging=true;if(dragging){Left=origin.X+delta.X;Top=origin.Y+delta.Y;}};
             MouseLeftButtonUp+=delegate{if(!pressed)return;pressed=false;ReleaseMouseCapture();if(!dragging){toggle();return;}var area=SystemParameters.WorkArea;double target=Left;if(Left<area.Left+24)target=area.Left+8;else if(Left+Width>area.Right-24)target=area.Right-Width-8;Top=Math.Max(area.Top,Math.Min(area.Bottom-Height,Top));if(SystemParameters.ClientAreaAnimation){snap.Value=Left;snap.Target=target;snap.Velocity=0;snapTime=DateTime.UtcNow;CompositionTarget.Rendering+=SnapFrame;}else Left=target;};
@@ -84,7 +91,7 @@ namespace ReadAlong
         internal void SetMiniScale(double scale){scale=Math.Max(.85,Math.Min(1.8,scale));Width=132*scale;Height=Math.Max(52,58*scale);var area=SystemParameters.WorkArea;Left=Math.Max(area.Left,Math.Min(area.Right-Width-8,Left));Top=Math.Max(area.Top,Math.Min(area.Bottom-Height,Top));}
         static void Add(ContextMenu menu,string text,Action action){var item=new MenuItem{Header=text};item.Click+=delegate{action();};menu.Items.Add(item);}
         public void SetActivity(bool active){activityLight.SetActive(active);}
-        public void UpdateCount(int count,bool running){label.Text=(running?"伴读":"界读")+(count>0?" · "+count+"句":"");}
+        public void UpdateCount(int count,bool running){caption.Text=count>0?(running?"伴读 · ":"暂停 · ")+count+"句":running?"伴读中":"EN · 中";emblem.SetRunning(running);System.Windows.Automation.AutomationProperties.SetName(this,"界读，"+(running?"伴读中":"已暂停")+"，"+count+"句，单击展开");}
     }
     public class DockMotion : IDisposable
     {

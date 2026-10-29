@@ -19,6 +19,7 @@ namespace ReadAlong
             try
             {
                 var app = new Application(); app.ShutdownMode = ShutdownMode.OnMainWindowClose; UI.Install(app);
+                string miniPreview=Option(args,"--mini-preview");if(miniPreview!=null){MiniPreview.Save(miniPreview);return 0;}
                 if (args.Contains("--fixture-window"))
                 {
                     var fixture = Tests.FixtureWindow(); string handleFile = Option(args, "--fixture-window");
@@ -37,6 +38,7 @@ namespace ReadAlong
                 {
                     if (demo) window.Demo(); if (!String.IsNullOrWhiteSpace(store.Warning)) MessageBox.Show(window, store.Warning, "数据已恢复");
                     if (report != null) Tests.UIRun(window, store, report);
+                    if(args.Contains("--start-collapsed"))window.ToggleDock(true);
                     string motionPreview=Option(args,"--motion-preview");
                     if(motionPreview!=null){try{MotionDemo.Save(window,motionPreview);}catch(Exception ex){File.WriteAllText(motionPreview+".error.txt",ex.ToString());}window.Close();}
                     string scanPreview=Option(args,"--scan-preview");
